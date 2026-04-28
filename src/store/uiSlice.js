@@ -1,7 +1,23 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { addRoute, deleteRoute, editRoute, fetchRoutes } from './routesSlice.js';
-import { refreshStats, } from './statsSlice.js';
-import { syncSession } from './sessionSlice.js';
+
+// Tracked action type prefixes — no direct imports needed (avoids circular deps)
+const TRACKED_PREFIXES = [
+  'session/sync',
+  'routes/fetchAll',
+  'routes/add',
+  'routes/delete',
+  'routes/edit',
+  'stats/refresh',
+];
+
+const isPending = (action) =>
+  TRACKED_PREFIXES.some((prefix) => action.type === `${prefix}/pending`);
+
+const isFulfilled = (action) =>
+  TRACKED_PREFIXES.some((prefix) => action.type === `${prefix}/fulfilled`);
+
+const isRejected = (action) =>
+  TRACKED_PREFIXES.some((prefix) => action.type === `${prefix}/rejected`);
 
 const uiSlice = createSlice({
   name: 'ui',
@@ -18,48 +34,18 @@ const uiSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    const pendingActions = [
-      syncSession.pending,
-      fetchRoutes.pending,
-      addRoute.pending,
-      deleteRoute.pending,
-      editRoute.pending,
-      refreshStats.pending,
-    ];
-    const fulfilledActions = [
-      syncSession.fulfilled,
-      fetchRoutes.fulfilled,
-      addRoute.fulfilled,
-      deleteRoute.fulfilled,
-      editRoute.fulfilled,
-      refreshStats.fulfilled,
-    ];
-    const rejectedActions = [
-      syncSession.rejected,
-      fetchRoutes.rejected,
-      addRoute.rejected,
-      deleteRoute.rejected,
-      editRoute.rejected,
-      refreshStats.rejected,
-    ];
-
-    pendingActions.forEach((action) => {
-      builder.addCase(action, (state) => {
+    builder
+      .addMatcher(isPending, (state) => {
         state.isLoading = true;
         state.error = null;
-      });
-    });
-    fulfilledActions.forEach((action) => {
-      builder.addCase(action, (state) => {
+      })
+      .addMatcher(isFulfilled, (state) => {
         state.isLoading = false;
-      });
-    });
-    rejectedActions.forEach((action) => {
-      builder.addCase(action, (state, act) => {
+      })
+      .addMatcher(isRejected, (state, action) => {
         state.isLoading = false;
-        state.error = act.payload;
+        state.error = action.payload;
       });
-    });
   },
 });
 
